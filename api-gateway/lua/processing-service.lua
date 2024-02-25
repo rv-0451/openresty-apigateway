@@ -1,27 +1,32 @@
---
--- Rate Limiter --
---
+-- Rate Limiter
+
 local rate_limiter = require "rate_limiter"
 rate_limiter.init()
 
---
--- Redis Cache --
---
-local redis_cache = require "redis_cache"
+-- Auth
 
--- Connect to Redis --
-local redis = redis_cache.connect()
-if not redis then
-    return ngx.exit(500)
+local jwt = require "resty.jwt"
+local auth_header = ngx.var.http_Authorization
+local token = nil
+
+if auth_header then
+    token = string.match(auth_header, "Bearer%s+(.+)")
 end
 
--- Lookup the key --
-local key = ngx.var.arg_key
-success = redis_cache.lookup_key(redis, key)
+if token == nil then
+    ngx.status = ngx.HTTP_UNAUTHORIZED
+    ngx.header.content_type = "application/json; charset=utf-8"
+    ngx.say("{\"error\": \"auth header or jwt token are missing\"}")
+    ngx.exit(ngx.HTTP_UNAUTHORIZED)
+end
 
--- Close the connection --
-redis_cache.close_connection(redis)
+local secret = os.getenv("SECRET")
+local jwt_obj = jwt:verify(secret, token)
 
-if not success then
-    return ngx.exit(401)
+if not jwt_obj["verified"] then
+    ngx.status = ngx.HTTP_UNAUTHORIZED
+    ngx.log(ngx.WARN, jwt_obj.reason)
+    ngx.header.content_type = "application/json; charset=utf-8"
+    ngx.say("{\"error\": \"" .. jwt_obj.reason .. "\"}")
+    ngx.exit(ngx.HTTP_UNAUTHORIZED)
 end

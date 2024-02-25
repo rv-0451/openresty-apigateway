@@ -17,7 +17,7 @@ services:
       dockerfile: Dockerfile
     image: localhost/api-gateway:latest
     environment:
-      REDIS_CONNECT_URL: redis://default:redispw@redis-cache:6379
+      SECRET: fantasticjwt
     volumes:
       - type: bind
         source: ./api-gateway/configs/nginx.conf
@@ -32,36 +32,6 @@ services:
       - 8080:8080
     networks:
       - myservice-net
-
-  redis-cache:
-    container_name: redis-cache
-    image: redis:7.2.4
-    command: ["redis-server", "/etc/redis/redis.conf"]
-    ports:
-      - 6379:6379
-    volumes:
-      - type: bind
-        source: ./redis-cache/redis.conf
-        target: /etc/redis/redis.conf
-      - type: volume
-        source: redis-cache-volume
-        target: /data
-    networks:
-      - myservice-net
-
-# helper container to add key for api auth after redis is up
-  redis-cache-setup:
-    container_name: redis-cache-setup
-    image: redis:7.2.4
-    depends_on:
-      - redis-cache
-    restart: "no"
-    command: ["bash", "-c", "sleep 3 && redis-cli -h redis-cache -p 6379 -a redispw SET mysecurekey 0"]
-    networks:
-      - myservice-net
-
-volumes:
-  redis-cache-volume:
 
 networks:
   myservice-net:

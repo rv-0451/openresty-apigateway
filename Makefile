@@ -14,4 +14,3 @@ rm: ## docker compose up
 	docker compose rm --stop --force
 	# docker image rm localhost/api-gateway:latest
 	# docker image rm localhost/processing-service:latest
-	# docker volume rm test_redis-cache-volume

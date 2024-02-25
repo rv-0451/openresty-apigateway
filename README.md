@@ -13,7 +13,7 @@ make up
 Try curl the application:
 
 ```bash
-curl http://127.0.0.1:8080/headers
+curl http://127.0.0.1:8080
 # output:
 # <html>
 # <head><title>401 Authorization Required</title></head>
@@ -27,7 +27,7 @@ curl http://127.0.0.1:8080/headers
 Try curl the application repetitively (rate-limiter test):
 
 ```bash
-curl -s http://127.0.0.1:8080/headers > /dev/null  && curl http://127.0.0.1:8080/headers
+curl -s http://127.0.0.1:8080 > /dev/null  && curl http://127.0.0.1:8080
 # output:
 # <html>
 # <head><title>503 Service Temporarily Unavailable</title></head>
@@ -38,14 +38,19 @@ curl -s http://127.0.0.1:8080/headers > /dev/null  && curl http://127.0.0.1:8080
 # </html>
 ```
 
-Try curl with key parameter (auth test):
+Try curl with token (auth test):
 
 ```bash
-curl http://127.0.0.1:8080/headers\?key=mysecurekey
+# Get token and run curl
+TOKEN=$(./scripts/jwt-gen.sh)
+curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8080/
 # output:
+# X-Real-Ip: 172.21.0.1
+# X-Forwarded-For: 172.21.0.1
 # Connection: close
 # User-Agent: curl/7.29.0
 # Accept: */*
+# Authorization: Bearer <token>
 ```
 
 Stop and remove containers:
@@ -60,9 +65,7 @@ make rm
 
 - `processing-service`: simple Go server (port 8090) returning request headers on `/headers` endpoint
 - `api-gateway`: OpenResty-based api gateway which does the following:
-- - listens 8080 port and serving only `/headers` path
+- - listens 8080 port and serving only `/` path
 - - rate-limits requests
-- - authenticates requests with `key` query param stored in redis
+- - authenticates jwt tokens in requests (symmetric key is specified in the env variable)
 - - passes request to backend `processing-service`
-- `redis-cache`: stores keys for authentication
-- `redis-cache-setup`:  helper container, adds authentication key after `redis-cache` is up
